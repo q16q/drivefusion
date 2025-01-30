@@ -10,7 +10,6 @@ class DriveAPI:
 
     def request(self, route: str, method: str, **kwargs):
         params = {
-            "key": self.api_key,
             "v": self.version
         }
 
@@ -19,7 +18,9 @@ class DriveAPI:
 
         request = requests.request(
             method = method, url = self.base_url + route,
-            params = params
+            params = params, headers = {
+                "Authorization": f"Bearer {self.api_key}"
+            }
         )
         try:
             request.raise_for_status()
