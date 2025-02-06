@@ -83,6 +83,10 @@ ipython_config.py
 
 # pyenv
 .python-version
+pyvenv.cfg
+Lib/
+Include/
+Scripts/
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -132,3 +136,4 @@ dmypy.json
 credentials*.json
 client_secret*.json
 token.pickle
+.vscode/

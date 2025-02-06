@@ -1,34 +1,92 @@
-import requests, logging, os
-from dotenv import load_dotenv
+from google.oauth2 import service_account
+from googleapiclient.http import MediaIoBaseDownload,MediaFileUpload
+from googleapiclient.discovery import build
 
-class DriveAPI:
-    def __init__(self, api_key):
-        self.api_key = api_key
-        self.version = 'weekly'
-        self.base_url = 'https://www.googleapis.com/drive/v3/'
-        self.logger = logging.getLogger(__name__)
+from exceptions import *
+from platform import python_version
 
-    def request(self, route: str, method: str, **kwargs):
-        params = {
-            "v": self.version
+if int(python_version().split('.')[1]) >= 13: # python 3.13 or more
+    from mimetypes import guess_file_type
+    guess_type = guess_file_type
+else: # python 3.12 or less
+    from mimetypes import guess_type
+
+class API:
+    def __init__(self, service_account_file: str = 'credentials.json',
+                 debug_mode: bool = False, **kwargs) -> None:
+        
+        if debug_mode and 'pretty_printer' in kwargs:
+            self.pp = kwargs.get('pretty_printer')
+        
+        self.scopes = [
+            'https://www.googleapis.com/auth/drive'
+        ]
+
+        self.account_fp = service_account_file
+
+        self.credentials = service_account.Credentials.from_service_account_file(
+            self.account_fp, scopes = self.scopes)
+        self.service = build('drive', 'v3', credentials = self.credentials)
+    
+    def get_all_files(self):
+        return self.service.files().list(pageSize = 10,
+            fields = "nextPageToken, files(id, name, mimeType)") \
+            .execute()
+
+    def __resolve_mime_type(self, fp: str) -> str:
+        return guess_type(fp, strict = False)[0]
+
+    def upload_file(self, fp: str, name: str, **kwargs) -> dict | None:
+        mimetype = self.__resolve_mime_type(fp)
+        metadata = {
+            "name": name
         }
 
-        if 'params' in kwargs:
-            params.update(kwargs.get('params'))
+        if mimetype:
+            metadata['mimeType'] = mimetype
+        if 'folder_id' in kwargs:
+            metadata.update({
+                "parents": [
+                    kwargs.get('folder_id')
+                ]
+            })
+        
+        media = MediaFileUpload(fp, mimetype = mimetype, resumable = True)
+        r = self.service.files().create(body = metadata, media_body = media,
+                                        fields = 'id').execute()
+        
+        if 'id' in r:
+            return r
+        else:
+            raise UploadFileError('Unknown response: %s' % r)
+    
+    def delete_file(self, file_id: str) -> dict | None:
+        return self.service.files().delete(fileId = file_id).execute()
+    
+    def create_folder(self, name, **kwargs) -> dict | None:
+        metadata = {
+            "name": name, "mimeType": "application/vnd.google-apps.folder"
+        }
 
-        request = requests.request(
-            method = method, url = self.base_url + route,
-            params = params, headers = {
-                "Authorization": f"Bearer {self.api_key}"
-            }
-        )
-        try:
-            request.raise_for_status()
-        except requests.exceptions.HTTPError as err:
-            self.logger.error(err)
-        return request
-
-if __name__ == '__main__': # test code
-    load_dotenv()
-    drive = DriveAPI(api_key = os.getenv('GOOGLE_API_KEY'))
-    r = drive.request('files', 'GET')
+        if 'folder_id' in kwargs:
+            metadata.update({
+                "parents": [ kwargs.get('folder_id') ]
+            })
+        
+        r = self.service.files().create(body = metadata,
+                                           fields = 'id').execute()
+        
+        if 'id' in r:
+            return r
+        else:
+            raise CreateFolderError('Unknown response: %s' % r.text)
+        
+if __name__ == '__main__':
+    import pprint
+    pp = pprint.PrettyPrinter(
+        indent = 4)
+    api = API(debug_mode = True, pretty_printer = pp)
+    results = api.get_all_files()
+    
+    pp.pprint(results)
+    pp.pprint(api.get_all_files())
