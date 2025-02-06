@@ -1,6 +1,6 @@
 # drivefusion
 > [!CAUTION]
-> Currently in WIP
+> Currently in early WIP
 
 **drivefusion** is an easy-to-use multi-account [**Google Drive**](https://drive.google.com) file manager.
 ## Current TODO list
