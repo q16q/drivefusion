@@ -1,6 +1,6 @@
 # drivefusion
 > [!CAUTION]
-> Currently in early WIP
+> Currently in early WIP!
 
 **drivefusion** is an easy-to-use multi-account [**Google Drive**](https://drive.google.com) file manager.  
 <sub>(actually a school project)</sub>
