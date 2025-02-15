@@ -6,5 +6,5 @@
 <sub>(actually a school project)</sub>
 ## Current TODO list
 - [x] Google Drive API support
-- [ ] GUI
+- [X] GUI
 - [ ] Splitting file and uploading it to multiple accounts based on available space on the accounts
