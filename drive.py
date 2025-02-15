@@ -80,13 +80,21 @@ class API:
             return r
         else:
             raise CreateFolderError('Unknown response: %s' % r.text)
+    
+    def download_file(self, file_id: str, destination: str) -> None:
+        request = self.service.files().get_media(fileId=file_id)
+        fh = open(destination, 'wb')
+        downloader = MediaIoBaseDownload(fh, request)
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+            if hasattr(self, 'pp'):
+                self.pp.pprint(f"Download {int(status.progress() * 100)}% complete.")
+        fh.close()
         
 if __name__ == '__main__':
     import pprint
     pp = pprint.PrettyPrinter(
         indent = 4)
     api = API(debug_mode = True, pretty_printer = pp)
-    results = api.get_all_files()
-    
-    pp.pprint(results)
     pp.pprint(api.get_all_files())
